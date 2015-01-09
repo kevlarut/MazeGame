@@ -1,0 +1,1 @@
+var mazeGame = angular.module('mazeGame', []);
