@@ -118,8 +118,8 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 	
 	$scope.shiftMazeWouldCollideWithLivingThing = function(livingThing) {
 	
-		if (livingThing.y % 2 == 0) {
-			var cell = $scope.maze[livingThing.y][livingThing.x - 1 < 0 ? 9 : livingThing.x - 1];
+		if (livingThing.point.y % 2 == 0) {
+			var cell = $scope.maze[livingThing.point.y][livingThing.point.x - 1 < 0 ? 9 : livingThing.point.x - 1];
 			if (cell === 1) {
 				return true;
 			}
@@ -129,8 +129,8 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 	
 	$scope.shiftMazeAltWouldCollideWithLivingThing = function(livingThing) {
 			
-		if (livingThing.x % 2 == 0) {
-			var cell = $scope.maze[livingThing.y - 1 < 0 ? 9 : livingThing.y - 1][livingThing.x];			
+		if (livingThing.point.x % 2 == 0) {
+			var cell = $scope.maze[livingThing.point.y - 1 < 0 ? 9 : livingThing.point.y - 1][livingThing.point.x];			
 			if (cell === 1) {
 				return true;
 			}
@@ -313,32 +313,30 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 	$scope.moveTheDragon = function() {
 		var x = $scope.dragon.point.x;
 		var y = $scope.dragon.point.y;
-		
-		var rollX = $scope.random(1, 3);
-		switch (rollX) {
+				
+		var roll = $scope.random(1, 5);
+		switch (roll) {
 			case 1:
 				x--;
 				break;
 			case 2:
 				x++;
 				break;			
-		}		
-		
-		var rollY = $scope.random(1, 3);
-		switch (rollY) {
-			case 1:
+			case 3:
 				y--;
-				break;
-			case 2:
-				y++;
 				break;			
-		}
+			case 4:
+				y++;
+				break;
+			default:
+				return;
+		}		
 		
 		$scope.moveLivingThing($scope.dragon, x, y);
 	}
 	
 	$scope.update = function() {		
-		var framesPerSecond = 10;
+		var framesPerSecond = 20;
 		
 		var now = new Date();
 		var timeSinceLastUpdate = now.getTime() - $scope.lastUpdated.getTime();
@@ -365,12 +363,12 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 	
 	$scope.init = function() {
 		$scope.generateMaze();
-		$scope.update();
 		$scope.slowerUpdate();
 		$scope.updateThingsToDraw();
 	}
 	
 	$scope.init();
+	$scope.update();
 	
 	
 }]);
