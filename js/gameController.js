@@ -5,11 +5,8 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 	$scope.playerX = 0;
 	$scope.playerY = 0;
 	$scope.lastUpdated = new Date();
-	$scope.obstacles = [
-		Isomer.Point(2, -4, 0),
-		Isomer.Point(0, 8, 0),
-		Isomer.Point(4, 4, 0),
-	];
+	$scope.maze = null;
+	$scope.obstacles = [];
 	
 	$scope.draw = function() {
 		var Color = Isomer.Color;	
@@ -92,7 +89,33 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		$scope.playerY = y;
 		
 		$scope.draw();
-	};
+	}
+	
+	$scope.random = function(min, max) {
+		return Math.floor(Math.random() * (max - min + 1)) + min;
+	}
+	
+	$scope.generateMaze = function() {
+		var maze = [[]];
+		for (var row = 0; row < 10; row++) {
+			maze[row] = [];
+			for (var col = 0; col < 10; col++) {
+				var cell = $scope.random(0,1);
+				maze[row][col] = cell;
+				
+				if (cell == 1) {
+					$scope.obstacles.push(Isomer.Point(col, row, 0));
+				}
+			}
+		}
+		
+		do {
+			$scope.playerX = $scope.random(0, 9);
+			$scope.playerY = $scope.random(0, 9);
+		} while (maze[$scope.playerY][$scope.playerX] == 1);
+		
+		$scope.maze = maze;
+	}
 	
 	$scope.update = function() {		
 		var framesPerSecond = 10;
@@ -104,6 +127,7 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		$timeout($scope.update, 1000 / framesPerSecond);
 	}
 	
+	$scope.generateMaze();
 	$scope.update();
 	$scope.draw();
 	
