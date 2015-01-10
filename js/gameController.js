@@ -22,11 +22,34 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		var iso = new Isomer(document.getElementById("gameCanvas"));
 		document.getElementById("gameCanvas").getContext('2d').clearRect(0, 0, 1600, 1200);
 		
-		iso.add(Shape.Prism(Point($scope.playerX, $scope.playerY, 0)), red);
+		var objectsToDraw = [];
+		
+		objectsToDraw.push({
+			point: Point($scope.playerX, $scope.playerY, 0), 
+			color: red});
+				
 		for (var i = 0; i < $scope.obstacles.length; i++) {
 			var obstaclePoint = $scope.obstacles[i];
-			iso.add(Shape.Prism(obstaclePoint), blue);
+			
+			objectsToDraw.push({
+			point: obstaclePoint, 
+			color: blue});
 		}
+	
+		var sortedObjects = objectsToDraw.sort(function (a, b) {
+			if (a.point.x + a.point.y > b.point.x + b.point.y) {
+				return -1;
+			}
+			if (a.point.x + a.point.y < b.point.x + b.point.y) {
+				return 1;
+			}
+			return 0;
+			});
+	
+		for (var i = 0; i < sortedObjects.length; i++) {
+			var object = sortedObjects[i];
+			iso.add(Shape.Prism(object.point), object.color);
+		}		
 	}
 	
 	$scope.keydown = function(event) {
@@ -60,7 +83,6 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		
 		for (var i = 0; i < $scope.obstacles.length; i++) {
 			var obstaclePoint = $scope.obstacles[i];
-			console.log(obstaclePoint);
 			if (x === obstaclePoint.x && y === obstaclePoint.y) {
 				return;
 			}
@@ -68,6 +90,8 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		
 		$scope.playerX = x;
 		$scope.playerY = y;
+		
+		$scope.draw();
 	};
 	
 	$scope.update = function() {		
@@ -75,13 +99,12 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		
 		now = new Date();
 		var timeSinceLastUpdate = now.getTime() - $scope.lastUpdated.getTime();
-		
-		$scope.draw();
-		
+				
 		$scope.lastUpdated = now;		
 		$timeout($scope.update, 1000 / framesPerSecond);
 	}
 	
 	$scope.update();
+	$scope.draw();
 	
 }]);
