@@ -1,12 +1,11 @@
 var mazeGame = angular.module('mazeGame');
 
 mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $timeout) {
-
+ 
 	$scope.playerX = 0;
 	$scope.playerY = 0;
 	$scope.lastUpdated = new Date();
 	$scope.maze = null;
-	$scope.obstacles = [];
 	
 	$scope.draw = function() {
 		var Color = Isomer.Color;	
@@ -24,13 +23,19 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		objectsToDraw.push({
 			point: Point($scope.playerX, $scope.playerY, 0), 
 			color: red});
+					
+		for (var row = 0; row < $scope.maze.length; row++) {
+			for (var col = 0; col < $scope.maze[row].length; col++) {
+				var cell = $scope.maze[row][col];
 				
-		for (var i = 0; i < $scope.obstacles.length; i++) {
-			var obstaclePoint = $scope.obstacles[i];
-			
-			objectsToDraw.push({
-			point: obstaclePoint, 
-			color: blue});
+				if (cell == 1) {
+					var point = Isomer.Point(col, row, 0);
+					
+					objectsToDraw.push({
+					point: point, 
+					color: blue});
+				}
+			}
 		}
 	
 		var sortedObjects = objectsToDraw.sort(function (a, b) {
@@ -49,6 +54,62 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		}		
 	}
 	
+	$scope.shiftMaze = function() {
+	
+		if ($scope.playerY % 2 == 0) {
+			var proposedPlayerPositionMazeCell = $scope.maze[$scope.playerY][$scope.playerX - 1 < 0 ? 9 : $scope.playerX - 1];
+			if (proposedPlayerPositionMazeCell === 1) {
+				return false;
+			}
+		}
+	
+		var maze = [[]];
+		
+		for (var row = 0; row < 10; row++) {
+			if (row % 2 == 0) {
+				maze[row] = [];		
+				maze[row][0] = $scope.maze[row][9];	
+				for (var col = 1; col < 10; col++) {
+					maze[row][col] = $scope.maze[row][col - 1];
+				}
+			}
+			else {
+				maze[row] = $scope.maze[row];
+			}
+		}
+		
+		$scope.maze = maze;
+		$scope.draw();
+	}
+	
+	$scope.shiftMazeAlt = function() {
+	
+		if ($scope.playerX % 2 == 0) {
+			var proposedPlayerPositionMazeCell = $scope.maze[$scope.playerY - 1 < 0 ? 9 : $scope.playerY - 1][$scope.playerX];
+			
+			if (proposedPlayerPositionMazeCell === 1) {
+				return false;
+			}
+		}
+	
+		var maze = [[]];
+		
+		for (var row = 0; row < 10; row++) {
+			maze[row] = [];		
+			for (var col = 0; col < 10; col++) {
+				if (col % 2 == 0) {
+					maze[row][col] = $scope.maze[row - 1 < 0 ? 9 : row - 1][col];
+				}
+				else {
+					maze[row][col] = $scope.maze[row][col];
+				}
+			}			
+		}
+		
+		$scope.maze = maze;
+		$scope.draw();
+	}
+	
 	$scope.keydown = function(event) {
 		
 		var x = $scope.playerX;
@@ -58,6 +119,8 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		var KEY_UP = 38;
 		var KEY_RIGHT = 39;
 		var KEY_DOWN = 40;
+		var KEY_LEFT_SHIFT = 16;
+		var KEY_RIGHT_SHIFT = 18;
 			
 		switch (event.keyCode) {
 			case KEY_LEFT:
@@ -76,13 +139,21 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 				x--;
 				event.preventDefault();
 				break;
+			case KEY_LEFT_SHIFT:
+				$scope.shiftMaze();				
+				event.preventDefault();
+				break;
+			case KEY_RIGHT_SHIFT:
+				$scope.shiftMazeAlt();				
+				event.preventDefault();
+				break;
+			default:
+				console.log(event.keyCode);
+				break;
 		}
 		
-		for (var i = 0; i < $scope.obstacles.length; i++) {
-			var obstaclePoint = $scope.obstacles[i];
-			if (x === obstaclePoint.x && y === obstaclePoint.y) {
-				return;
-			}
+		if (x < 0 || x >= 10 || y < 0 || y >= 10 || $scope.maze[y][x] == 1) {
+			return;
 		}
 		
 		$scope.playerX = x;
@@ -102,19 +173,15 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 			for (var col = 0; col < 10; col++) {
 				var cell = $scope.random(0,1);
 				maze[row][col] = cell;
-				
-				if (cell == 1) {
-					$scope.obstacles.push(Isomer.Point(col, row, 0));
-				}
 			}
 		}
+		$scope.maze = maze;		
 		
 		do {
 			$scope.playerX = $scope.random(0, 9);
 			$scope.playerY = $scope.random(0, 9);
 		} while (maze[$scope.playerY][$scope.playerX] == 1);
 		
-		$scope.maze = maze;
 	}
 	
 	$scope.update = function() {		

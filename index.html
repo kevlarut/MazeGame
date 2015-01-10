@@ -34,15 +34,7 @@
 	
 </head>
 <body ng-controller="gameController" class="gameControllerContainer" ng-keydown="keydown($event)">
-	
-	<div style="display:none;">
-		<table>
-			<tr ng-repeat="row in maze track by $index">
-				<td ng-repeat="column in row track by $index" style="font-family:courier new;background:red; font-weight: bold; padding:5px;">{{column}}</td>			
-			</tr>
-		</table>
-	</div>
-	
+		
 	<div>	
 		<canvas width="1600" height="1200" id="gameCanvas"></canvas>
 	</div>
