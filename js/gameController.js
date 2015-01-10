@@ -3,31 +3,61 @@ var mazeGame = angular.module('mazeGame');
 mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $timeout) {
  
 	$scope.dragon = {};
+	$scope.snitch = {};
 	$scope.player = {};
 	$scope.lastUpdated = new Date();
+	$scope.lastSlowerUpdated = new Date();
 	$scope.maze = null;
+	$scope.rotationAngle = 0;
+	$scope.thingsToDraw = [];
 	
-	$scope.draw = function() {
+	$scope.render = function() {
+		var Color = Isomer.Color;	
+	
+		var iso = new Isomer(document.getElementById("gameCanvas"));
+		document.getElementById("gameCanvas").getContext('2d').clearRect(0, 0, 1600, 1200);
+		
+		var Point = Isomer.Point;
+	
+		for (var i = 0; i < $scope.thingsToDraw.length; i++) {
+			var object = $scope.thingsToDraw[i];
+			iso.add(object.shape, object.color);
+		}				
+	}
+	
+	$scope.getSnitchShape = function() {
+		var point = $scope.snitch.point;
+		var shape = $scope.Octahedron(point).rotateZ(new Isomer.Point(point.x+0.5,point.y+0.5,point.z+0.5), $scope.rotationAngle);
+		return shape;
+	}
+	
+	$scope.updateThingsToDraw = function() {
 		var Color = Isomer.Color;	
 		var Point = Isomer.Point;
 		var Shape = Isomer.Shape;
-
 		var red = new Color(160, 60, 50);
 		var green = new Color(186, 218, 85);
 		var blue = new Color(50, 60, 160);
-
-		var iso = new Isomer(document.getElementById("gameCanvas"));
-		document.getElementById("gameCanvas").getContext('2d').clearRect(0, 0, 1600, 1200);
+		var yellow = new Color(160, 160, 50);
 		
 		var objectsToDraw = [];
 		
 		objectsToDraw.push({
-			point: Point($scope.player.x, $scope.player.y, 0), 
+			point: $scope.player.point,
+			shape: Shape.Prism($scope.player.point),
 			color: red});
-						
+		
 		objectsToDraw.push({
-			point: Point($scope.dragon.x, $scope.dragon.y, 0), 
+			point: $scope.dragon.point,
+			shape: Shape.Prism($scope.dragon.point), 
 			color: green});
+			
+		var shape = $scope.Octahedron($scope.snitch.point).rotateZ(new Point($scope.snitch.point.x+0.5,$scope.snitch.point.y+0.5,$scope.snitch.point.z+0.5), $scope.rotationAngle);
+		objectsToDraw.push({
+			shape: $scope.getSnitchShape(), 
+			point: $scope.snitch.point,
+			color: yellow,
+			spin: true});
 					
 		for (var row = 0; row < $scope.maze.length; row++) {
 			for (var col = 0; col < $scope.maze[row].length; col++) {
@@ -38,6 +68,7 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 					
 					objectsToDraw.push({
 					point: point, 
+					shape: Shape.Prism(point),
 					color: blue});
 				}
 			}
@@ -52,11 +83,37 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 			}
 			return 0;
 			});
+		$scope.thingsToDraw = sortedObjects;
+		
+	}
 	
-		for (var i = 0; i < sortedObjects.length; i++) {
-			var object = sortedObjects[i];
-			iso.add(Shape.Prism(object.point), object.color);
-		}		
+	$scope.Octahedron = function(origin) {
+		var Color = Isomer.Color;	
+		var Point = Isomer.Point;
+		var Shape = Isomer.Shape;
+		var Path = Isomer.Path;
+		
+		var center = origin.translate(0.5, 0.5, 0.5);
+		var faces = [];
+
+		var upperTriangle = new Path([
+			origin.translate(0, 0, 0.5),
+			origin.translate(0.5, 0.5, 1),
+			origin.translate(0, 1, 0.5)
+		]);
+
+		var lowerTriangle = new Path([
+			origin.translate(0, 0, 0.5),
+			origin.translate(0, 1, 0.5),
+			origin.translate(0.5, 0.5, 0)
+		]);
+
+		for (var i = 0; i < 4; i++) {
+			faces.push(upperTriangle.rotateZ(center, i * Math.PI / 2));
+			faces.push(lowerTriangle.rotateZ(center, i * Math.PI / 2));
+		}
+
+		return new Shape(faces).scale(center, Math.sqrt(2)/2, Math.sqrt(2)/2, 1);
 	}
 	
 	$scope.shiftMazeWouldCollideWithLivingThing = function(livingThing) {
@@ -89,6 +146,9 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		if ($scope.shiftMazeWouldCollideWithLivingThing($scope.dragon)) {
 			return false;
 		}
+		if ($scope.shiftMazeWouldCollideWithLivingThing($scope.snitch)) {
+			return false;
+		}
 	
 		var maze = [[]];
 		
@@ -106,7 +166,6 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		}
 		
 		$scope.maze = maze;
-		$scope.draw();
 	}
 	
 	$scope.shiftMazeAlt = function() {
@@ -115,6 +174,9 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 			return false;
 		}
 		if ($scope.shiftMazeAltWouldCollideWithLivingThing($scope.dragon)) {
+			return false;
+		}
+		if ($scope.shiftMazeAltWouldCollideWithLivingThing($scope.snitch)) {
 			return false;
 		}
 	
@@ -133,13 +195,12 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		}
 		
 		$scope.maze = maze;
-		$scope.draw();
 	}
 	
 	$scope.keydown = function(event) {
 		
-		var x = $scope.player.x;
-		var y = $scope.player.y;
+		var x = $scope.player.point.x;
+		var y = $scope.player.point.y;
 		
 		var KEY_LEFT = 37;
 		var KEY_UP = 38;
@@ -186,19 +247,24 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 			return;
 		}
 		
-		livingThing.x = x;
-		livingThing.y = y;
+		livingThing.point.x = x;
+		livingThing.point.y = y;
 		
-		if ($scope.player.x == $scope.dragon.x && $scope.player.y == $scope.dragon.y) {
+		if ($scope.player.point.x == $scope.snitch.point.x && $scope.player.point.y == $scope.snitch.point.y) {
+			$scope.win();
+		}
+		else if ($scope.player.point.x == $scope.dragon.point.x && $scope.player.point.y == $scope.dragon.point.y) {
 			$scope.die();
 		}
-		
-		$scope.draw();
-		
 	}
 	
 	$scope.die = function() {
 		alert("You are dead.  :(");
+		$scope.init();
+	}
+	
+	$scope.win = function() {
+		alert("You win!");
 		$scope.init();
 	}
 	
@@ -234,18 +300,19 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 		$scope.maze = maze;		
 		
 		var position = $scope.findAnEmptySpotInTheMaze();
-		$scope.player.x = position.x;
-		$scope.player.y = position.y;
+		$scope.player.point = Isomer.Point(position.x, position.y, 0);
 		
 		position = $scope.findAnEmptySpotInTheMaze();
-		$scope.dragon.x = position.x;
-		$scope.dragon.y = position.y;
+		$scope.dragon.point = Isomer.Point(position.x, position.y, 0);
+		
+		position = $scope.findAnEmptySpotInTheMaze();
+		$scope.snitch.point = Isomer.Point(position.x, position.y, 0.5);
 				
 	}
 	
 	$scope.moveTheDragon = function() {
-		var x = $scope.dragon.x;
-		var y = $scope.dragon.y;
+		var x = $scope.dragon.point.x;
+		var y = $scope.dragon.point.y;
 		
 		var rollX = $scope.random(1, 3);
 		switch (rollX) {
@@ -271,21 +338,36 @@ mazeGame.controller('gameController', ['$scope', '$timeout', function($scope, $t
 	}
 	
 	$scope.update = function() {		
-		var framesPerSecond = 1;
+		var framesPerSecond = 10;
 		
-		now = new Date();
+		var now = new Date();
 		var timeSinceLastUpdate = now.getTime() - $scope.lastUpdated.getTime();
 				
-		$scope.moveTheDragon();
+		$scope.rotationAngle += 2 * Math.PI / 60;
+				
+		$scope.updateThingsToDraw();
+		$scope.render();
 				
 		$scope.lastUpdated = now;		
 		$timeout($scope.update, 1000 / framesPerSecond);
 	}
 	
+	$scope.slowerUpdate = function() {	
+		var framesPerSecond = 2;
+		var now = new Date();
+		var timeSinceLastUpdate = now.getTime() - $scope.lastSlowerUpdated.getTime();
+		
+		$scope.moveTheDragon();
+		
+		$scope.lastSlowerUpdated = now;
+		$timeout($scope.slowerUpdate, 1000 / framesPerSecond);
+	}
+	
 	$scope.init = function() {
 		$scope.generateMaze();
 		$scope.update();
-		$scope.draw();
+		$scope.slowerUpdate();
+		$scope.updateThingsToDraw();
 	}
 	
 	$scope.init();
